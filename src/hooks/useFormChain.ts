@@ -27,8 +27,6 @@ import { WALRUS_EPOCHS_CONFIG, WALRUS_EPOCHS_RESPONSE, WALRUS_EPOCHS_FILE } from
 import { createWalrusClient } from '../lib/walrus';
 import { WalrusFile } from '@mysten/walrus';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 export interface CreateFormInput {
   title: string;
   description: string;
