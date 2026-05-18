@@ -1,8 +1,6 @@
 import { Transaction } from '@mysten/sui/transactions';
 import { PACKAGE_ID, REGISTRY_ID, CLOCK_ID } from './constants';
 
-// ─── Types ──────────────────────────────────────────────────────────────────────
-
 export interface CreateFormParams {
   configBlobId: string;
   title: string;
@@ -42,12 +40,6 @@ export interface OnChainFormFields {
   };
 }
 
-// ─── Transaction Builders ──────────────────────────────────────────────────────
-
-/**
- * Build tx: Tạo form mới (draft).
- * Frontend upload config lên Walrus trước → lấy configBlobId → gọi hàm này.
- */
 export function buildCreateFormTx(params: CreateFormParams): Transaction {
   const tx = new Transaction();
   const enc = new TextEncoder();
@@ -68,9 +60,6 @@ export function buildCreateFormTx(params: CreateFormParams): Transaction {
   return tx;
 }
 
-/**
- * Build tx: Publish form (bật nhận response).
- */
 export function buildPublishFormTx(capId: string, formObjectId: string): Transaction {
   const tx = new Transaction();
 
@@ -195,7 +184,6 @@ export function buildDeleteFormTx(
   return tx;
 }
 
-// Decode a Move vector<u8> field that JSON-RPC may return as number[] or Uint8Array
 function decodeVecU8(val: unknown): string {
   if (typeof val === 'string') return val;
   if (Array.isArray(val)) return new TextDecoder().decode(new Uint8Array(val as number[]));
@@ -366,7 +354,6 @@ export function parseCreateFormResult(effects: {
   if (!formObjectId || !capId) return null;
   return { formObjectId, capId };
 }
-// ─── Check if wallet already submitted ────────────────────────────────────────
 
 export interface WalletSubmission {
   blobId: string;
@@ -374,10 +361,6 @@ export interface WalletSubmission {
   responseIndex: number;
 }
 
-/**
- * Kiểm tra on-chain ví `walletAddress` đã gửi form `formObjectId` chưa.
- * Trả về thông tin lần gửi nếu có, null nếu chưa.
- */
 export async function checkWalletSubmitted(
   suiClient: any,
   formObjectId: string,
