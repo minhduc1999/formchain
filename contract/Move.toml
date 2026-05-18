@@ -1,0 +1,10 @@
+[package]
+name = "formchain"
+edition = "2024"
+version = "1.0.0"
+
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/mainnet" }
+
+[addresses]
+formchain = "0x0"
