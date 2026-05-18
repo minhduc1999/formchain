@@ -4,7 +4,6 @@ import { Transaction } from '@mysten/sui/transactions';
 import { fromHex, toHex } from '@mysten/sui/utils';
 import { PACKAGE_ID, SEAL_THRESHOLD } from './constants';
 
-// ── Client setup ──────────────────────────────────────────────────────────────
 const suiClient = new SuiGrpcClient({
   network: 'mainnet',
   baseUrl: 'https://fullnode.mainnet.sui.io:443',
@@ -17,8 +16,6 @@ const sealClient = new SealClient({
   ],
   verifyKeyServers: true,
 });
-
-// ── ID helpers ────────────────────────────────────────────────────────────────
 
 export function buildSealId(formObjectId: string, responseIndex: number): Uint8Array {
   const raw = formObjectId.replace('0x', '').padStart(64, '0');
@@ -33,8 +30,6 @@ export function buildSealId(formObjectId: string, responseIndex: number): Uint8A
 export function buildSealIdHex(formObjectId: string, responseIndex: number): string {
   return toHex(buildSealId(formObjectId, responseIndex));
 }
-
-// ── Session Key ───────────────────────────────────────────────────────────────
 
 export async function createSessionKey(
   walletAddress: string,
@@ -54,8 +49,6 @@ export async function createSessionKey(
 
   return sessionKey;
 }
-
-// ── Encrypt ───────────────────────────────────────────────────────────────────
 
 export async function sealEncryptResponse(
   formObjectId: string,
@@ -77,8 +70,6 @@ export async function sealEncryptResponse(
   };
 }
 
-// ── Decrypt ───────────────────────────────────────────────────────────────────
-
 export async function sealDecryptResponse(
   encryptedBytes: Uint8Array,
   formObjectId: string,
@@ -86,8 +77,6 @@ export async function sealDecryptResponse(
   responseIndex: number,
   sessionKey: Awaited<ReturnType<typeof createSessionKey>>,
 ): Promise<Uint8Array> {
-  // FIX: truyền walletAddress vào để set sender đúng trong transaction
-  // Seal server kiểm tra signer của tx phải là owner của capObjectId
   const walletAddress = sessionKey.getAddress();
   const txBytes = await buildSealApproveTx(formObjectId, capObjectId, responseIndex, walletAddress);
 
@@ -98,20 +87,15 @@ export async function sealDecryptResponse(
   });
 }
 
-// ── PTB builders ──────────────────────────────────────────────────────────────
-
 async function buildSealApproveTx(
   formObjectId: string,
   capObjectId: string,
   responseIndex: number,
-  senderAddress: string,   // ← FIX: cần set sender để Seal server verify đúng
+  senderAddress: string,
 ): Promise<Uint8Array> {
   const id = buildSealId(formObjectId, responseIndex);
   const tx = new Transaction();
 
-  // FIX: set sender = địa chỉ ví của admin (owner của capObjectId)
-  // Khi không set, gRPC client dùng 0x000...000 làm dummy sender
-  // → Seal server từ chối vì signer không phải owner của cap object
   tx.setSender(senderAddress);
 
   tx.moveCall({
