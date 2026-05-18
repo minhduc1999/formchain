@@ -40,17 +40,11 @@ export interface CreateFormInput {
 
 type SignAndExecuteFn = ReturnType<typeof useSignAndExecuteTransaction>['mutateAsync'];
 
-// ─── Helper: chuyển Uint8Array<ArrayBufferLike> → Uint8Array<ArrayBuffer> ────
-// TextEncoder.encode() và new Uint8Array(arrayBuffer) trả về ArrayBufferLike
-// (có thể là SharedArrayBuffer). Walrus writeBlobFlow yêu cầu Uint8Array<ArrayBuffer>.
-
 function toArrayBuffer(data: Uint8Array): Uint8Array<ArrayBuffer> {
   const copy = new ArrayBuffer(data.byteLength);
   new Uint8Array(copy).set(data);
   return new Uint8Array(copy) as Uint8Array<ArrayBuffer>;
 }
-
-// ─── Helper: upload bytes via writeBlobFlow ────────────────────────────────────
 
 async function uploadViaFlow(
   data: Uint8Array<ArrayBuffer>,
@@ -92,8 +86,6 @@ async function uploadViaFlow(
   return uploadedFiles[0].blobId;
 }
 
-// ─── Helper: decode vector<u8> field từ JSON-RPC (number[] hoặc string) ──────────
-
 function decodeVecU8Field(val: unknown): string {
   if (typeof val === 'string') return val;
   if (Array.isArray(val)) return new TextDecoder().decode(new Uint8Array(val as number[]));
@@ -101,13 +93,8 @@ function decodeVecU8Field(val: unknown): string {
   return String(val ?? '');
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
-
 export function useFormChain() {
   const account = useCurrentAccount();
-
-  // dapp-kit v1: useSuiClient() trả về SuiClient (JSON-RPC).
-  // Không import SuiClient trực tiếp từ @mysten/sui/client vì v2.x đã xóa export đó.
   const suiClient = useSuiClient();
 
   const { mutateAsync: signAndExecute } = useSignAndExecuteTransaction();
@@ -116,8 +103,6 @@ export function useFormChain() {
 
   const [uploadStatus, setUploadStatus] = useState<UploadStatus>('idle');
   const [txStatus, setTxStatus] = useState<TxStatus>({ status: 'idle' });
-
-  // ─── Create & Publish Form ────────────────────────────────────────────────
 
   const createAndPublishForm = useCallback(
     async (input: CreateFormInput): Promise<FormConfig | null> => {
@@ -243,8 +228,6 @@ export function useFormChain() {
     [account, suiClient, signAndExecute, addForm],
   );
 
-  // ─── Submit Response ────────────────────────────────────────────────────────
-
   const submitResponse = useCallback(
     async (
       form: FormConfig,
@@ -275,13 +258,11 @@ export function useFormChain() {
         const mergedAnswers: Record<string, unknown> = { ...answers, ...fileBlobs };
 
         // 3. Encrypt từng field có sealEncrypted = true (per-field Seal)
-        // Field nào không có seal → để plain text trong answers
-        // Field nào có seal → encrypt riêng → lưu dạng { __sealed: true, data: hex }
         const sealedFieldIds = (form.fields ?? [])
           .filter(f => f.sealEncrypted)
           .map(f => f.id);
 
-        // Cũng encrypt toàn bộ nếu form.sealEncrypted = true (backward compat)
+        // Cũng encrypt toàn bộ nếu form.sealEncrypted = true
         const hasPerFieldSeal = sealedFieldIds.length > 0;
         const hasFormLevelSeal = form.sealEncrypted && !hasPerFieldSeal;
 
@@ -301,7 +282,7 @@ export function useFormChain() {
               // Lưu dạng marker để biết khi decrypt
               mergedAnswers[fieldId] = {
                 __sealed: true,
-                data: Array.from(encryptedBytes), // lưu như number[] để JSON-serializable
+                data: Array.from(encryptedBytes),
               };
             } catch (sealErr) {
               console.error(`Seal encrypt field ${fieldId} failed:`, sealErr);
@@ -319,12 +300,10 @@ export function useFormChain() {
           version: 1,
         };
 
-        // uploadBytes phải là Uint8Array<ArrayBuffer> để tương thích với Walrus + Seal
         let uploadBytes: Uint8Array<ArrayBuffer> = toArrayBuffer(
           new TextEncoder().encode(JSON.stringify(responsePayload)),
         );
 
-        // Encrypt toàn bộ nếu form-level seal (backward compat, không có per-field seal)
         if (hasFormLevelSeal) {
           setUploadStatus('encrypting');
           try {
@@ -384,8 +363,6 @@ export function useFormChain() {
     [account, signAndExecute, addResponse, updateForm],
   );
 
-  // ─── Sync from chain ────────────────────────────────────────────────────────
-
   const syncFormsFromChain = useCallback(async () => {
     if (!account) return;
 
@@ -415,7 +392,6 @@ export function useFormChain() {
           console.warn(`Failed to fetch config for ${event.formObjectId}`);
         }
 
-        // OnChainFormFields.responses là Table struct, không phải array.
         const formConfig: FormConfig = {
           id: event.formObjectId,
           title: onChainFields.title,
@@ -442,8 +418,6 @@ export function useFormChain() {
     }
   }, [account, suiClient, setForms]);
 
-  // ─── Fetch responses for a form (Dynamic Fields) ──────────────────────────
-
   const fetchResponsesForForm = useCallback(
     async (form: FormConfig): Promise<void> => {
       if (!form.onChain?.objectId) return;
@@ -458,7 +432,6 @@ export function useFormChain() {
         if (!formObj.data?.content || formObj.data.content.dataType !== 'moveObject') return;
         const formFields = (formObj.data.content as { fields: Record<string, unknown> }).fields;
 
-        // responses là Table struct — dynamic fields nằm dưới Table's inner object ID
         const responsesTable = formFields.responses as {
           type?: string;
           fields?: { id?: { id?: string }; size?: string };
@@ -487,10 +460,7 @@ export function useFormChain() {
 
             if (!obj.data?.content || obj.data.content.dataType !== 'moveObject') continue;
 
-            // JSON-RPC returns fields as a plain object
             const fields = (obj.data.content as { fields: Record<string, unknown> }).fields;
-
-            // value field chứa ResponseRecord struct
             const valueFields = (fields.value as { fields?: Record<string, unknown> })?.fields ?? fields;
 
             const idx = Number(valueFields.index ?? valueFields.key ?? fields.name ?? 0);
@@ -542,8 +512,6 @@ export function useFormChain() {
     [suiClient, setResponses],
   );
 
-  // ─── Admin Actions ────────────────────────────────────────────────────────
-
   const annotateResponse = useCallback(
     async (
       form: FormConfig,
@@ -582,8 +550,6 @@ export function useFormChain() {
       setTxStatus({ status: 'pending' });
       try {
         let capId = form.onChain.capId;
-
-        // ✅ Nếu capId rỗng, fetch lại từ chain
         if (!capId) {
           const { fetchOwnerCap } = await import('../lib/contract');
           capId = await fetchOwnerCap(
@@ -629,7 +595,6 @@ export function useFormChain() {
   );
 
   return {
-    // Actions
     createAndPublishForm,
     submitResponse,
     syncFormsFromChain,
@@ -637,7 +602,6 @@ export function useFormChain() {
     annotateResponse,
     deleteFormOnChain,
     setPausedOnChain,
-    // Status
     uploadStatus,
     txStatus,
     resetStatus: () => {
