@@ -62,13 +62,6 @@ export async function walrusUpload(
   }
 }
 
-/**
- * Download blob từ Walrus SDK — tự nhận dạng quilt (writeFilesFlow) hay raw blob (writeBlob).
- *
- * - writeFilesFlow lưu dưới dạng quilt → dùng getBlob + blob.files()[0].bytes()
- * - writeBlob lưu raw → dùng readBlob
- * - SDK đọc trực tiếp từ storage nodes (không qua HTTP aggregator, không bị CORS)
- */
 export async function walrusDownload(blobId: string): Promise<Uint8Array> {
   if (!blobId) throw new Error('walrusDownload: blobId is empty');
 
@@ -85,10 +78,8 @@ export async function walrusDownload(blobId: string): Promise<Uint8Array> {
         return await files[0].bytes();
       }
     } catch {
-      // Không phải quilt → tiếp tục
     }
 
-    // Đọc như raw blob
     return await client.walrus.readBlob({ blobId });
 
   } catch (err) {
