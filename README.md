@@ -180,6 +180,13 @@ src/
 │   └── SurveyPage.tsx             # Public survey fill page
 ├── store/index.ts                 # Zustand global state
 └── types/index.ts                 # Shared TypeScript types
+
+contract/
+├── sources/
+│   ├── formchain.move       # Core form logic
+│   └── formchain_seal.move  # Seal encryption integration
+├── Move.toml                # Package config
+└── Move.lock                # Dependency lock file
 ```
 
 ---
