@@ -190,6 +190,21 @@ src/
 
 ---
 
+## 🌐 Live Demo
+
+> **Try it live:** [https://test-formchain.vercel.app](https://test-formchain.vercel.app)
+
+This is a **read-only dashboard** that loads form data directly from the smart contract on Sui Mainnet.
+Its primary purpose is to **test Seal decryption** — only the wallet that originally created a form holds the `FormOwnerCap` and can decrypt its responses.
+
+### What you can test
+
+- 🔐 **Seal decryption** — Connect any wallet and see which forms it can decrypt. Only the form creator's wallet can unlock encrypted responses.
+- 📋 **On-chain data loading** — All forms and responses are fetched live from the smart contract, no backend involved.
+- 🌊 **Walrus blob resolution** — Response payloads are retrieved from decentralised Walrus storage after decryption.
+
+> **Note:** To decrypt responses, connect the **same wallet that created the form**. Other wallets will see the form metadata but cannot access encrypted content.
+
 ## License
 
 MIT — built by the [Dut](https://twitter.com/dut469) team for Walrus Sessions Session 2.
